@@ -24,10 +24,26 @@ void Game::Init(HWND hwnd)
     CreateVS();
     CreateInputLayout();
     CreatePS();
+    
+    CreateRasterizerState();
+    CreateSamplerState();
+    CreateBlendState();
+    
+    CreateSRV();
+    CreateConstantBuffer();
 }
 
 void Game::Update()
 {
+    D3D11_MAPPED_SUBRESOURCE subResource;
+    ZeroMemory(&subResource, sizeof(subResource));
+    
+    // _transformData.offset.x += 0.0003f;
+    // _transformData.offset.y += 0.0003f;
+     
+    _deviceContext->Map(_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &subResource);
+    ::memcpy(subResource.pData, &_transformData, sizeof(TransformData));
+    _deviceContext->Unmap(_constantBuffer.Get(), 0);
 }
 
 void Game::Render()
@@ -41,20 +57,26 @@ void Game::Render()
         uint32 offset = 0;
         
         // IA
+        _deviceContext->IASetIndexBuffer(_indexBuffer.Get(), DXGI_FORMAT_R32_UINT, 0);
         _deviceContext->IASetVertexBuffers(0, 1, _vertexBuffer.GetAddressOf(), &stride, &offset);
         _deviceContext->IASetInputLayout(_inputLayout.Get());
         _deviceContext->IASetPrimitiveTopology(D3D11_PRIMITIVE_TOPOLOGY_TRIANGLELIST);
         
         // VS
         _deviceContext->VSSetShader(_vertexShader.Get(), nullptr, 0);
+        _deviceContext->VSSetConstantBuffers(0, 1, _constantBuffer.GetAddressOf());
         
         // RS
+        _deviceContext->RSSetState(_rasterizerState.Get());
         
         // PS
+        _deviceContext->PSSetShaderResources(0, 1, _shaderResourceView.GetAddressOf());
         _deviceContext->PSSetShader(_pixelShader.Get(), nullptr, 0);
+        _deviceContext->PSSetSamplers(0, 1, _samplerState.GetAddressOf());
         
         // OM
-        _deviceContext->Draw(_vertices.size(), 0);        
+        _deviceContext->OMSetBlendState(_blendState.Get(), nullptr, 0xFFFFFFFF);
+        _deviceContext->DrawIndexed((uint32)_indices.size(), 0, 0);
     }
     
     // 다 그렸으면 Present.
@@ -144,14 +166,21 @@ void Game::CreateGeometry()
 {
     // VertexData
     {
-        _vertices.resize(3);
+        _vertices.resize(4);
         _vertices[0].position = { -0.5f, -0.5f, 0.0f };
-        _vertices[1].position = {  0.0f,  0.5f, 0.0f };
+        _vertices[1].position = { -0.5f,  0.5f, 0.0f };
         _vertices[2].position = {  0.5f, -0.5f, 0.0f };
+        _vertices[3].position = {  0.5f,  0.5f, 0.0f };
+        
+        _vertices[0].uv = { 0.0f, 5.0f };
+        _vertices[1].uv = { 0.0f, 0.0f };
+        _vertices[2].uv = { 5.0f, 5.0f };
+        _vertices[3].uv = { 5.0f, 0.0f };
     
-        _vertices[0].color = { 1.0f, 0.0f, 0.0f, 1.0f };
-        _vertices[1].color = { 0.0f, 1.0f, 0.0f, 1.0f };
-        _vertices[2].color = { 0.0f, 0.0f, 1.0f, 1.0f };
+        //_vertices[0].color = { 1.0f, 0.0f, 0.0f, 1.0f };
+        //_vertices[1].color = { 0.0f, 1.0f, 0.0f, 1.0f };
+        //_vertices[2].color = { 0.0f, 0.0f, 1.0f, 1.0f };
+        //_vertices[3].color = { 0.0f, 1.0f, 1.0f, 1.0f };
     }
     
     // VertexBuffer
@@ -169,6 +198,26 @@ void Game::CreateGeometry()
         
         _device->CreateBuffer(&desc, &data, _vertexBuffer.GetAddressOf());
     }
+    
+    // IndexData
+    {
+        _indices = {0, 1, 2, 2, 1, 3};
+    }
+    
+    // IndexBuffer
+    {
+        D3D11_BUFFER_DESC desc;
+        ZeroMemory(&desc, sizeof(desc));
+        desc.Usage = D3D11_USAGE_IMMUTABLE;
+        desc.BindFlags = D3D11_BIND_INDEX_BUFFER;
+        desc.ByteWidth = (uint32)(sizeof(uint32) * _indices.size());
+        
+        D3D11_SUBRESOURCE_DATA data;
+        ZeroMemory(&data, sizeof(data));
+        data.pSysMem = _indices.data();
+        
+        _device->CreateBuffer(&desc, &data, _indexBuffer.GetAddressOf());       
+    }
 }
 
 void Game::CreateInputLayout()
@@ -176,7 +225,8 @@ void Game::CreateInputLayout()
     D3D11_INPUT_ELEMENT_DESC  layout[] = 
     {
         {"POSITION", 0, DXGI_FORMAT_R32G32B32_FLOAT, 0, 0, D3D11_INPUT_PER_VERTEX_DATA, 0},
-        {"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        //{"COLOR", 0, DXGI_FORMAT_R32G32B32A32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
+        {"TEXCOORD", 0, DXGI_FORMAT_R32G32_FLOAT, 0, 12, D3D11_INPUT_PER_VERTEX_DATA, 0},
     };
     
     const int32 count = (int32)(sizeof(layout) / sizeof(D3D11_INPUT_ELEMENT_DESC));
@@ -198,6 +248,93 @@ void Game::CreatePS()
     
     HRESULT hr = _device->CreatePixelShader(_psBlob->GetBufferPointer(), _psBlob->GetBufferSize(), nullptr, _pixelShader.GetAddressOf());
     CHECK(hr);
+}
+
+void Game::CreateRasterizerState()
+{
+    D3D11_RASTERIZER_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    {
+        desc.FillMode = D3D11_FILL_SOLID;
+        desc.CullMode = D3D11_CULL_BACK;
+        desc.FrontCounterClockwise = FALSE;
+    }
+    
+    HRESULT hr = _device->CreateRasterizerState(&desc, _rasterizerState.GetAddressOf());
+    CHECK(hr);
+}
+
+void Game::CreateSamplerState()
+{
+    D3D11_SAMPLER_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    {
+        desc.AddressU = D3D11_TEXTURE_ADDRESS_WRAP;
+        desc.AddressV = D3D11_TEXTURE_ADDRESS_WRAP;
+        desc.AddressW = D3D11_TEXTURE_ADDRESS_WRAP;
+        desc.BorderColor[0] = 1.0f;
+        desc.BorderColor[1] = 0.0f;
+        desc.BorderColor[2] = 0.0f;
+        desc.BorderColor[3] = 1.0f;
+        desc.ComparisonFunc = D3D11_COMPARISON_ALWAYS;
+        desc.Filter = D3D11_FILTER_MIN_MAG_MIP_LINEAR;
+        desc.MaxAnisotropy = 16;
+        desc.MinLOD = FLT_MIN;
+        desc.MaxLOD = FLT_MAX;
+        desc.MipLODBias = 0.0f;        
+    }
+    
+    HRESULT hr = _device->CreateSamplerState(&desc, _samplerState.GetAddressOf());
+    CHECK(hr);
+}
+
+void Game::CreateBlendState()
+{
+    D3D11_BLEND_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    {
+        desc.AlphaToCoverageEnable = false;
+        desc.IndependentBlendEnable = false;
+        
+        desc.RenderTarget[0].BlendEnable = true;
+        desc.RenderTarget[0].SrcBlend = D3D11_BLEND_SRC_ALPHA;
+        desc.RenderTarget[0].DestBlend = D3D11_BLEND_INV_SRC_ALPHA;
+        desc.RenderTarget[0].BlendOp = D3D11_BLEND_OP_ADD;
+        desc.RenderTarget[0].SrcBlendAlpha = D3D11_BLEND_ONE;
+        desc.RenderTarget[0].DestBlendAlpha = D3D11_BLEND_ZERO;
+        desc.RenderTarget[0].BlendOpAlpha = D3D11_BLEND_OP_ADD;
+        desc.RenderTarget[0].RenderTargetWriteMask = D3D11_COLOR_WRITE_ENABLE_ALL;       
+    }
+    
+    HRESULT hr = _device->CreateBlendState(&desc, _blendState.GetAddressOf());
+    CHECK(hr);
+}
+
+void Game::CreateSRV()
+{
+    DirectX::TexMetadata md;
+    DirectX::ScratchImage image;
+    
+    HRESULT hr = ::LoadFromWICFile(L"BusilPotato.png", WIC_FLAGS_NONE, &md, image);
+    CHECK(hr);
+    
+    hr = ::CreateShaderResourceView(_device.Get(), image.GetImages(), image.GetImageCount(), md, _shaderResourceView.GetAddressOf());
+    CHECK(hr);
+}
+
+void Game::CreateConstantBuffer()
+{
+    D3D11_BUFFER_DESC desc;
+    ZeroMemory(&desc, sizeof(desc));
+    {
+        desc.Usage = D3D11_USAGE_DYNAMIC;               // CPU_Write + GPU_Read
+        desc.BindFlags = D3D11_BIND_CONSTANT_BUFFER;
+        desc.ByteWidth = sizeof(TransformData);
+        desc.CPUAccessFlags = D3D11_CPU_ACCESS_WRITE;
+        
+        HRESULT hr = _device->CreateBuffer(&desc, nullptr, _constantBuffer.GetAddressOf());
+        CHECK(hr);
+    }
 }
 
 void Game::LoadShaderFromFile(const wstring& path, const string& name, const string& version, ComPtr<ID3DBlob>& blob)
