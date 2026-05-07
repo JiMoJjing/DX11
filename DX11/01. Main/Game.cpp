@@ -38,9 +38,16 @@ void Game::Update()
     D3D11_MAPPED_SUBRESOURCE subResource;
     ZeroMemory(&subResource, sizeof(subResource));
     
-    // _transformData.offset.x += 0.0003f;
-    // _transformData.offset.y += 0.0003f;
-     
+    _localPosition.x += 0.001f;
+    Matrix matScale = Matrix::CreateScale(_localScale / 3);
+    Matrix matRotation = Matrix::CreateRotationX(_localRotation.x);
+    matRotation *= Matrix::CreateRotationY(_localRotation.y);
+    matRotation *= Matrix::CreateRotationZ(_localRotation.z);
+    Matrix matTranslation = Matrix::CreateTranslation(_localPosition);
+
+    Matrix matWorld = matScale * matRotation * matTranslation; // SRT.
+    _transformData.matWorld = matWorld;
+
     _deviceContext->Map(_constantBuffer.Get(), 0, D3D11_MAP_WRITE_DISCARD, 0, &subResource);
     ::memcpy(subResource.pData, &_transformData, sizeof(TransformData));
     _deviceContext->Unmap(_constantBuffer.Get(), 0);
@@ -167,15 +174,15 @@ void Game::CreateGeometry()
     // VertexData
     {
         _vertices.resize(4);
-        _vertices[0].position = { -0.5f, -0.5f, 0.0f };
-        _vertices[1].position = { -0.5f,  0.5f, 0.0f };
-        _vertices[2].position = {  0.5f, -0.5f, 0.0f };
-        _vertices[3].position = {  0.5f,  0.5f, 0.0f };
+        _vertices[0].position = Vec3(-0.5f, -0.5f, 0.0f);
+        _vertices[1].position = Vec3(-0.5f,  0.5f, 0.0f);
+        _vertices[2].position = Vec3(0.5f, -0.5f, 0.0f);
+        _vertices[3].position = Vec3(0.5f,  0.5f, 0.0f);
         
-        _vertices[0].uv = { 0.0f, 5.0f };
-        _vertices[1].uv = { 0.0f, 0.0f };
-        _vertices[2].uv = { 5.0f, 5.0f };
-        _vertices[3].uv = { 5.0f, 0.0f };
+        _vertices[0].uv = Vec2(0.0f, 5.0f);
+        _vertices[1].uv = Vec2(0.0f, 0.0f);
+        _vertices[2].uv = Vec2(5.0f, 5.0f);
+        _vertices[3].uv = Vec2(5.0f, 0.0f);
     
         //_vertices[0].color = { 1.0f, 0.0f, 0.0f, 1.0f };
         //_vertices[1].color = { 0.0f, 1.0f, 0.0f, 1.0f };

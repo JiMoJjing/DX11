@@ -138,6 +138,8 @@
     <ClInclude Include="99. Headers\pch.h" />
     <ClInclude Include="99. Headers\Struct.h" />
     <ClInclude Include="99. Headers\Types.h" />
+    <ClInclude Include="99. Headers\Utils\SimpleMath.h" />
+    <ClInclude Include="99. Headers\Utils\SimpleMath.inl" />
     <ClInclude Include="99. Headers\Values.h" />
   </ItemGroup>
   <ItemGroup>
@@ -146,6 +148,7 @@
     <ClCompile Include="99. Headers\pch.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Create</PrecompiledHeader>
     </ClCompile>
+    <ClCompile Include="99. Headers\Utils\SimpleMath.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="DX11.rc" />

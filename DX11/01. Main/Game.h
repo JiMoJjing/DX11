@@ -88,5 +88,7 @@ private:
     TransformData _transformData;
     ComPtr<ID3D11Buffer> _constantBuffer = nullptr;
     
-    // [CPU<->RAM] [GPU<->VRAM]
+    Vec3 _localPosition = {0.0f, 0.0f, 0.0f};
+    Vec3 _localRotation = {0.0f, 0.0f, 0.0f};
+    Vec3 _localScale = {1.0f, 1.0f, 1.0f};
 };
