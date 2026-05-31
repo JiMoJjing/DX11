@@ -1,4 +1,6 @@
 ﻿#pragma once
+
+
 #include "Component.h"
 
 class Transform : public Component
@@ -34,9 +36,9 @@ public:
     Vec3 GetScale() const { return _scale; }
     void SetScale(const Vec3& worldScale);
     
-    Vec3 GetRight() const { return _right; }
-    Vec3 GetUp() const { return _up; }
-    Vec3 GetLook() const { return _look; }
+    Vec3 GetRight() { return _matWorld.Right(); }
+    Vec3 GetUp() { return _matWorld.Up(); }
+    Vec3 GetLook() { return _matWorld.Backward(); }
     
     Matrix GetWorldMatrix() const { return _matWorld; }
     
@@ -61,11 +63,7 @@ private:
     Vec3 _position;
     Vec3 _rotation;
     Vec3 _scale;
-    
-    Vec3 _right;
-    Vec3 _up;
-    Vec3 _look;
-    
+
 private:
     shared_ptr<Transform> _parent;
     vector<shared_ptr<Transform>> _children;

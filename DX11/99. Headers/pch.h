@@ -1,7 +1,9 @@
 #pragma once
 
+#define _XM_NO_INTRINSICS_
+
 #include "Values.h"
-#include "Struct.h"
+#include "00. Engine/Manager/Render/RenderHelper.h"
 #include "Types.h"
 
 #include <memory>
@@ -19,6 +21,10 @@ using namespace std;
 //  WIN
 #include <Windows.h>
 #include <assert.h>
+
+// Utils
+#include "99. Headers/Utils/tinyxml2.h"
+using namespace tinyxml2;
 
 // DX
 #include <d3d11.h>
@@ -42,6 +48,14 @@ using namespace Microsoft::WRL;
 
 #define CHECK(p) assert(SUCCEEDED(p))
 
+#include "01. Main/Game.h"
+#define GAME GGame
+#define SCENE GAME->GetSceneManager()
+#define TIME GAME->GetTimeManager()
+#define INPUT GAME->GetInputManager()
+#define RESOURCES GAME->GetResourceManager()
+#define RENDER GAME->GetRenderManager()
+
 // Engine
 #include "00. Engine/Pipeline/Graphics.h"
 #include "00. Engine/Pipeline/01. InputAssembler/VertexBuffer.h"
@@ -52,9 +66,8 @@ using namespace Microsoft::WRL;
 #include "00. Engine/Pipeline/00. Geometry/GeometryHelper.h"
 #include "00. Engine/Pipeline/00. Geometry/VertexData.h"
 
-#include "00. Engine/Pipeline/02. VertexShader/Shader.h"
+#include "00. Engine/Pipeline/02. VertexShader/ShaderBase.h"
 #include "00. Engine/Pipeline/02. VertexShader/ConstantBuffer.h"
-#include "00. Engine/Pipeline/04. PixelShader/Texture.h"
 
 #include "00. Engine/Pipeline/03. Rasterizer/RasterizerState.h"
 #include "00. Engine/Pipeline/04. PixelShader/SamplerState.h"
@@ -63,6 +76,5 @@ using namespace Microsoft::WRL;
 #include "00. Engine/Pipeline/Pipeline.h"
 #include "00. Engine/GameObject/GameObject.h"
 
-#include "00. Engine/Component/Component.h"
-#include "00. Engine/Component/Transform.h"
-#include "00. Engine/Component/MonoBehavior.h"
+
+#include "00. Engine/Resource/Texture.h" 

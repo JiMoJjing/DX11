@@ -2,7 +2,7 @@
 #include "Texture.h"
 
 Texture::Texture(ComPtr<ID3D11Device> device)
-    : _device(device)
+    : Super(ResourceType::Texture), _device(device)
 {
 }
 
@@ -20,4 +20,7 @@ void Texture::Create(const wstring& path)
     
     hr = ::CreateShaderResourceView(_device.Get(), image.GetImages(), image.GetImageCount(), md, _shaderResourceView.GetAddressOf());
     CHECK(hr);
+    
+    _size.x = md.width;
+    _size.y = md.height;
 }

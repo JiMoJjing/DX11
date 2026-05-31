@@ -49,9 +49,9 @@ void Transform::UpdateTransform()
     matRotation *= Matrix::CreateRotationY(_localRotation.y);
     matRotation *= Matrix::CreateRotationZ(_localRotation.z);
     Matrix matTranslation = Matrix::CreateTranslation(_localPosition);
-    
+
     _matLocal = matScale * matRotation * matTranslation;
-    
+
     if (HasParent())
     {
         _matWorld = _matLocal * _parent->GetWorldMatrix();
@@ -60,15 +60,11 @@ void Transform::UpdateTransform()
     {
         _matWorld = _matLocal;
     }
-    
+
     Quaternion quat;
     _matWorld.Decompose(_scale, quat, _position);
     _rotation = ToEulerAngles(quat);
-    
-    _right = Vec3::TransformNormal(Vec3::Right, _matWorld);
-    _up = Vec3::TransformNormal(Vec3::Up, _matWorld);
-    _look = Vec3::TransformNormal(Vec3::Backward, _matWorld);    // Forward가 -1로 되어있음, Backword가 1로 되어 있음.
-    
+
     // Children
     for (const shared_ptr<Transform>& child : _children)
     {

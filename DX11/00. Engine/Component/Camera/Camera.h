@@ -1,5 +1,7 @@
 ﻿#pragma once
 
+#include "00. Engine/Component/Component.h"
+
 enum class ProjectionType
 {
     Perspective,    // 원근 투영.

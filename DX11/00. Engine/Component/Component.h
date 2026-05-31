@@ -1,8 +1,7 @@
 ﻿#pragma once
-#include "Transform.h"
 
-class Transform;
 class GameObject;
+class Transform;
 
 enum class ComponentType : uint8
 {
